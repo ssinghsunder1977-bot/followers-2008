@@ -17,7 +17,6 @@ type Order = {
   price: string;
   date: string;
   status: "pending" | "delivered";
-  screenshot?: string;
 };
 
 const profiles = [
@@ -108,7 +107,6 @@ export default function App() {
   const [instagramHandle, setInstagramHandle] = useState("");
   const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
   const [showUpiModal, setShowUpiModal] = useState(false);
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
@@ -174,39 +172,20 @@ export default function App() {
     }
     setShowInstagramModal(false);
     setLoadingPlan(null);
-    setScreenshotFile(null);
+
+    // Save order to localStorage
+    const existingOrders = JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
+    existingOrders.unshift({
+      id: Date.now(),
+      instagram: instagramHandle,
+      product: pendingPlan?.productName || "",
+      price: pendingPlan?.price || "",
+      date: new Date().toLocaleDateString("en-IN"),
+      status: "pending",
+    });
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(existingOrders));
+
     setShowUpiModal(true);
-  };
-
-  const handleSubmitOrder = (file: File | null) => {
-    const saveOrder = (screenshotDataUrl: string) => {
-      const existingOrders = JSON.parse(
-        localStorage.getItem(ORDERS_KEY) || "[]",
-      );
-      existingOrders.unshift({
-        id: Date.now(),
-        instagram: instagramHandle,
-        product: pendingPlan?.productName || "",
-        price: pendingPlan?.price || "",
-        date: new Date().toLocaleDateString("en-IN"),
-        status: "pending",
-        screenshot: screenshotDataUrl,
-      });
-      localStorage.setItem(ORDERS_KEY, JSON.stringify(existingOrders));
-      toast.success("Order submitted! We'll deliver within 24 hours.");
-      setShowUpiModal(false);
-      setPendingPlan(null);
-      setInstagramHandle("");
-      setScreenshotFile(null);
-    };
-
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => saveOrder(e.target?.result as string);
-      reader.readAsDataURL(file);
-    } else {
-      saveOrder("");
-    }
   };
 
   const renderPlanCard = (plan: Plan, i: number, prefix: string) => {
@@ -823,36 +802,6 @@ export default function App() {
                             </span>
                           )}
                         </td>
-                        <td style={{ padding: "0.7rem 0.9rem" }}>
-                          {order.screenshot ? (
-                            <a
-                              href={order.screenshot}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="View full screenshot"
-                            >
-                              <img
-                                src={order.screenshot}
-                                alt="Payment screenshot"
-                                style={{
-                                  width: 60,
-                                  height: 60,
-                                  objectFit: "cover",
-                                  borderRadius: 6,
-                                  border: "1.5px solid #d1d5db",
-                                  cursor: "pointer",
-                                  display: "block",
-                                }}
-                              />
-                            </a>
-                          ) : (
-                            <span
-                              style={{ color: "#d1d5db", fontSize: "0.8rem" }}
-                            >
-                              —
-                            </span>
-                          )}
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1204,71 +1153,40 @@ export default function App() {
                 ))}
               </div>
 
-              <div style={{ textAlign: "left", marginTop: "0.5rem" }}>
-                <label
-                  htmlFor="screenshot-upload"
-                  style={{
-                    display: "block",
-                    fontWeight: 600,
-                    color: "#374151",
-                    fontSize: "0.9rem",
-                    marginBottom: "0.4rem",
-                  }}
-                >
-                  📸 Upload Payment Screenshot
-                </label>
-                <input
-                  id="screenshot-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setScreenshotFile(e.target.files?.[0] ?? null)
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "0.5rem",
-                    border: "1.5px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: "0.88rem",
-                    background: "#f9fafb",
-                    cursor: "pointer",
-                    boxSizing: "border-box",
-                  }}
-                  data-ocid="upi.upload_button"
-                />
-                {screenshotFile && (
-                  <p
-                    style={{
-                      fontSize: "0.8rem",
-                      color: "#16a34a",
-                      marginTop: 4,
-                    }}
-                  >
-                    ✓ {screenshotFile.name}
-                  </p>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleSubmitOrder(screenshotFile)}
+              <p
                 style={{
-                  width: "100%",
-                  marginTop: "1rem",
-                  padding: "0.8rem",
-                  background: "linear-gradient(90deg, #2563eb, #60a5fa)",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 12,
-                  fontWeight: 700,
-                  fontSize: "1rem",
-                  cursor: "pointer",
-                  boxShadow: "0 4px 14px rgba(37,99,235,0.3)",
+                  fontSize: "0.85rem",
+                  color: "#6b7280",
+                  lineHeight: 1.5,
+                  margin: "0 0 1rem",
                 }}
-                data-ocid="upi.submit_button"
               >
-                ✅ Submit Order
-              </button>
+                After payment, WhatsApp your screenshot and Instagram username
+                to confirm your order.
+              </p>
+
+              <a
+                href="https://wa.me/918700910551"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background: "#25d366",
+                  color: "#fff",
+                  borderRadius: 40,
+                  padding: "0.7rem 1.8rem",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  textDecoration: "none",
+                  marginBottom: 6,
+                }}
+                data-ocid="upi.whatsapp_button"
+              >
+                <i className="fab fa-whatsapp" style={{ fontSize: "1.2rem" }} />
+                Send Screenshot on WhatsApp
+              </a>
             </motion.div>
           </motion.div>
         )}
@@ -1700,12 +1618,12 @@ export default function App() {
 
               <div
                 style={{
-                  background: "#eff6ff",
-                  border: "1.5px solid #bfdbfe",
+                  background: "#fef3c7",
+                  border: "1.5px solid #fde68a",
                   borderRadius: 12,
                   padding: "1rem 1.2rem",
                   fontSize: "0.9rem",
-                  color: "#1e3a5f",
+                  color: "#78350f",
                   lineHeight: 1.6,
                   marginBottom: "1.5rem",
                   textAlign: "left",
@@ -1714,29 +1632,40 @@ export default function App() {
                 <strong>How to order:</strong>
                 <ol style={{ margin: "0.5rem 0 0", paddingLeft: "1.4rem" }}>
                   <li>
-                    Select your package above and click &quot;Buy via UPI&quot;
-                  </li>
-                  <li>
                     Scan the QR code with Paytm, PhonePe, GPay, or any UPI app
                   </li>
+                  <li>Pay the amount for your selected package</li>
                   <li>
-                    Upload your payment screenshot and enter your Instagram
-                    username on the website
+                    Send your payment screenshot + Instagram username on
+                    WhatsApp
                   </li>
                   <li>Followers will be delivered within 24 hours</li>
                 </ol>
               </div>
 
-              <p
+              <a
+                href="https://wa.me/918700910551"
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
-                  fontSize: "0.95rem",
-                  color: "#4b5563",
-                  lineHeight: 1.6,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: "#25d366",
+                  color: "#fff",
+                  borderRadius: 40,
+                  padding: "0.9rem 2.2rem",
+                  fontWeight: 700,
+                  fontSize: "1.05rem",
+                  textDecoration: "none",
+                  boxShadow: "0 4px 18px rgba(37,211,102,0.3)",
+                  transition: "transform 0.15s",
                 }}
+                data-ocid="upi.whatsapp_button"
               >
-                Select your package above, scan to pay, then submit your
-                screenshot and Instagram username on the website.
-              </p>
+                <i className="fab fa-whatsapp" style={{ fontSize: "1.3rem" }} />
+                WhatsApp for Order Confirmation
+              </a>
             </div>
           </motion.div>
         </div>
